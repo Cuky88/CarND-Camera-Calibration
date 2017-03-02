@@ -19,7 +19,7 @@ for idx, image_file in enumerate(calibration_images):
         real_world_points.append(real_world_grid)
         transformed_points.append(corners)
 
-test_image = cv2.imread("calibration_wide/test_image.jpg")
+test_image = cv2.imread("calibration_wide/test_image-2.jpg")
 cv2.imshow("distorted", test_image)
 test_image_size = (test_image.shape[1], test_image.shape[0])
 
@@ -39,7 +39,24 @@ print(distortion_coefficients, "\n")
 print(rotation_vectors)
 print(translation_vectors)
 
-if calibrated:
-    undistorted = cv2.undistort(test_image, camera_matrix, distortion_coefficients, newCameraMatrix=camera_matrix)
-    cv2.imshow("undistorted", undistorted)
+undistorted = cv2.undistort(test_image, camera_matrix, distortion_coefficients, newCameraMatrix=camera_matrix)
+cv2.imshow("undistorted", undistorted)
+
+# warping
+undistorted_gray = cv2.cvtColor(undistorted, cv2.COLOR_BGR2GRAY)
+found, corners = cv2.findChessboardCorners(undistorted_gray, pattern_size, None)
+test_image_size = (undistorted_gray.shape[1], undistorted_gray.shape[0])
+offset = 50
+
+if found:
+    cv2.drawChessboardCorners(undistorted_gray, pattern_size, corners, found)
+    cv2.imshow("croners", undistorted_gray)
+    source_points = np.float32([corners[0], corners[7], corners[-1], corners[-8]])
+    dest_points = np.float32([[offset, offset], [test_image_size[0] - offset, offset],
+                [test_image_size[0] - offset, test_image_size[1] - offset],
+                [offset, test_image_size[1] - offset]])
+
+    transform_matrix = cv2.getPerspectiveTransform(source_points, dest_points)
+    warped_image = cv2.warpPerspective(undistorted_gray, transform_matrix, test_image_size)
+    cv2.imshow("warped", warped_image)
     cv2.waitKey()
